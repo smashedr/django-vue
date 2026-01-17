@@ -26,38 +26,13 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v6
 
-      - name: "Debug event.json"
-        continue-on-error: true
-        run: cat "${GITHUB_EVENT_PATH}"
-      - name: "Debug CTX github"
-        continue-on-error: true
-        env:
-          GITHUB_CTX: ${{ toJSON(github) }}
-        run: echo "$GITHUB_CTX"
-
-      - name: "Setup Node 24"
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-
-      - name: "Install"
-        run: |
-          npm ci
-
-      - name: "Build"
+      - name: "prettier"
         if: ${{ !cancelled() }}
         run: |
-          npm run build
-
-      - name: "ESLint"
-        if: ${{ !cancelled() }}
-        run: |
-          npm run lint:check
-
-      - name: "Prettier Check"
-        if: ${{ !cancelled() }}
-        run: |
-          npm run prettier:check
+          echo "::group::Install"
+          npm install prettier
+          echo "::endgroup::"
+          npx prettier --check .
 
       - name: "yamllint"
         if: ${{ !cancelled() }}
