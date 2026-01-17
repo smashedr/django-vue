@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: web
+      dockerfile: Dockerfile
+    image: django-vue-web:latest
+    #env_file: web/.env.local
+    environment:
+      # noinspection HttpUrlsUsage
+      DJANGO_HOST: http://app:9000/
+    command: "npm run dev -- --host"
+    depends_on:
+      - app
+    ports:
+      - "${PORT:-80}:5173"
+    develop:
+      watch:
+        - action: sync
+          path: web
+          target: web
+
+  app:
+    build:
+      context: app
+      dockerfile: Dockerfile
+    image: django-vue-app:latest
+    env_file: web/.env.local
+    environment:
+      DOCKER: true
+    command: "gunicorn project.wsgi:application -b 0.0.0.0:9000 -w 1 --reload"
+    develop:
+      watch:
+        - action: sync
+          path: app
+          target: app
+        - action: rebuild
+          path: pyproject.toml
+        - action: rebuild
+          path: uv.lock

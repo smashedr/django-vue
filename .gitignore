@@ -1,0 +1,19 @@
+# Generic
+.idea/
+*.iml
+.vscode/
+.venv/
+venv/
+__pycache__/
+*.egg-info/
+node_modules/
+build/
+dist/
+.*cache
+*.log
+*.pyc
+.coverage
+coverage.xml
+# App
+.env.*
+*.sqlite3

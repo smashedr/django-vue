@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    image: django-vue-nginx:latest
+    #env_file: web/.env.local
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf localhost:80/health-check/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      - app
+    ports:
+      - "${PORT:-80}:80"
+
+  app:
+    build:
+      context: app
+      dockerfile: Dockerfile
+    image: django-vue-app:latest
+    env_file: web/.env.local
+    environment:
+      DOCKER: true
+    command: "gunicorn project.wsgi:application -b 0.0.0.0:9000 -w 2"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/health-check/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

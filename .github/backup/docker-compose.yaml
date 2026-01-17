@@ -1,0 +1,105 @@
+version: "3.8"
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    image: django-vue-nginx:latest
+    #env_file: settings.env
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 32M
+    #healthcheck:
+    #  test: ["CMD-SHELL", "curl -sf localhost:80/health-check || exit 1"]
+    #  interval: 10s
+    #  timeout: 10s
+    #  retries: 3
+    #  start_period: 10s
+    volumes:
+      - data_dir:/data
+    #secrets:
+    #  - source: cssnr_basic_http_auth
+    #    target: /etc/nginx/auth.users
+    depends_on:
+      - app
+      #- flower
+      #- redis-commander
+      #- phpmyadmin
+    ports:
+      - "80:80"
+    develop:
+      watch:
+        - action: rebuild
+          path: nginx
+
+  app:
+    build: app
+    #build:
+    #  context: .
+    #  dockerfile: ./app/Dockerfile
+    image: django-vue-app:latest
+    env_file: web/.env.local
+    #command: "watchmedo auto-restart -d /app -p '*.py;*.html' -R -- gunicorn project.asgi:application -b 0.0.0.0:9000 -w 1 -k uvicorn.workers.UvicornWorker"
+    #command: "gunicorn project.asgi:application -b 0.0.0.0:9000 -w 1 -k uvicorn.workers.UvicornWorker --reload"
+    command: "gunicorn project.wsgi:application -b 0.0.0.0:9000 -w 1 --reload"
+    #command: "uvicorn project.asgi:application --host 0.0.0.0 --port 9000 --reload --reload-include *.html"
+    #command: "sh -c 'python manage.py runserver 0.0.0.0:9000'"
+    #healthcheck:
+    #  test: ["CMD", "curl", "-sf", "http://localhost:9000/app-health-check/"]
+    #  interval: 1m
+    #  timeout: 10s
+    #  retries: 3
+    #  start_period: 10s
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 256M
+    volumes:
+      - data_dir:/data
+    depends_on:
+      - redis
+    develop:
+      watch:
+        - action: sync
+          path: app
+          target: app
+        #- action: sync+exec
+        #  path: app/templates
+        #  target: app/templates
+        #  exec:
+        #    command: "pkill -HUP gunicorn"
+        - action: sync
+          path: app/static
+          target: app/static
+          #exec:
+          #  command: "python manage.py collectstatic --noinput -v 0"
+        - action: rebuild
+          path: pyproject.toml
+        - action: rebuild
+          path: uv.lock
+
+  redis:
+    image: redis:6-alpine
+    command: "redis-server --appendonly yes"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 32M
+    volumes:
+      - redis_data:/data
+
+secrets:
+  cssnr_basic_http_auth:
+    file: ~/basic_http_auth
+
+volumes:
+  data_dir:
+  redis_data:
